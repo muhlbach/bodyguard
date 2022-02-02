@@ -9,6 +9,25 @@ from .exceptions import WrongInputException
 #------------------------------------------------------------------------------
 # Main
 #------------------------------------------------------------------------------
+def convert_to_list(x):
+    """Convert object "x" to list"""
+    
+    # List non-iterables and iterables. Note that we cannot rely on __iter__ attribute, because then str will be iterable!
+    NON_ITERABLES = (str,numbers.Number)
+    ITERABLES = (list, tuple, np.ndarray, pd.Series)
+    
+    if isinstance(x,NON_ITERABLES):
+        x = [x]
+    elif isinstance(x,ITERABLES):
+        x = [i for i in x]
+    else:
+        try:
+            x = [i for i in x]
+        except:
+            x = [x]
+            
+    return x
+
 def isin(a, b, how="all", return_element_wise=True):
     """Check if any/all of the elements in 'a' is included in 'b'
     Note: Argument 'how' has NO EFFECT when 'return_element_wise=True'
@@ -42,3 +61,15 @@ def isin(a, b, how="all", return_element_wise=True):
         is_in = is_in[0]
             
     return is_in
+
+def remove_empty_elements(d):
+    """
+    Remove empty elements from dict or list
+    """
+    if isinstance(d, dict):
+        return dict((k, remove_empty_elements(v)) for k, v in d.items() if v and remove_empty_elements(v))
+    elif isinstance(d, list):
+        return [remove_empty_elements(v) for v in d if v and remove_empty_elements(v)]
+    else:
+        return d
+    
