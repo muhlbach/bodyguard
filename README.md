@@ -1,3 +1,3 @@
-# Python Machinery (machinery)
+# Python bodyguard (bodyguard)
 Everyday tools for Python
 
