@@ -5,6 +5,7 @@
 import numpy as np
 import pandas as pd
 import numbers
+from functools import reduce
 
 # User
 from .exceptions import WrongInputException
@@ -74,4 +75,56 @@ def remove_empty_elements(d):
         return [remove_empty_elements(v) for v in d if v and remove_empty_elements(v)]
     else:
         return d
+    
+    
+def merge_multiply_dfs(l,
+                       how='inner',
+                       on=None,
+                       left_on=None,
+                       right_on=None,
+                       left_index=False,
+                       right_index=False,
+                       sort=False,
+                       suffixes=('_x', '_y'),
+                       copy=True,
+                       indicator=False,
+                       validate=None):
+    
+    # Check if really lists
+    if not isinstance(l, list):
+        raise WrongInputException(input_name="l",
+                                  provided_input=l,
+                                  allowed_inputs=["list"])
+        
+    # Check if all elements are pd.dataframes
+    if not all(isinstance(df,pd.DataFrame) for df in l):
+        raise Exception("All elements in 'l' must be instances of pd.DataFrame")
+        
+    df_merged = reduce(lambda left,right: pd.merge(left,
+                                                   right,
+                                                   how=how,
+                                                   on=on,
+                                                   left_on=left_on,
+                                                   right_on=right_on,
+                                                   left_index=left_index,
+                                                   right_index=right_index,
+                                                   sort=sort,
+                                                   suffixes=suffixes,
+                                                   copy=copy,
+                                                   indicator=indicator,
+                                                   validate=validate
+                                                   ), l)
+    
+    return df_merged
+
+
+        
+
+
+
+
+
+
+
+
     
