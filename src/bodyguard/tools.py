@@ -3,6 +3,8 @@
 #------------------------------------------------------------------------------
 # Standard
 import numpy as np
+import pandas as pd
+import numbers
 
 # User
 from .exceptions import WrongInputException
