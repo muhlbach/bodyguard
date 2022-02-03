@@ -89,8 +89,10 @@ def merge_multiply_dfs(l,
                        copy=True,
                        indicator=False,
                        validate=None):
-    
-    # Check if really lists
+    """
+    Merge multiple pd.DataFrame
+    """
+    # Check if l is a list
     if not isinstance(l, list):
         raise WrongInputException(input_name="l",
                                   provided_input=l,
@@ -100,6 +102,7 @@ def merge_multiply_dfs(l,
     if not all(isinstance(df,pd.DataFrame) for df in l):
         raise Exception("All elements in 'l' must be instances of pd.DataFrame")
         
+    # Merge
     df_merged = reduce(lambda left,right: pd.merge(left,
                                                    right,
                                                    how=how,
