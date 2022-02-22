@@ -35,3 +35,14 @@ class WrongInputTypeException(Exception):
     def __str__(self):
         
         return self.message.format(self.input_name,type(self.provided_input), self.allowed_inputs)
+
+
+def print_warning(msg=""):
+    
+    print(
+f"""
+-------------------- USER WARNING --------------------
+{msg}
+------------------------------------------------------
+"""
+        )

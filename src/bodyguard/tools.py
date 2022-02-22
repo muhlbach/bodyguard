@@ -8,10 +8,30 @@ import numbers
 from functools import reduce
 
 # User
-from .exceptions import WrongInputException
+from .exceptions import WrongInputException, WrongInputTypeException
 #------------------------------------------------------------------------------
 # Main
 #------------------------------------------------------------------------------
+def downcast(df, downcast_int=True, downcast_float=True):
+    """
+    Downcast numerical dtypes of dataframe
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise WrongInputTypeException(input_name="df",
+                                      provided_input=df,
+                                      allowed_inputs=pd.DataFrame)
+        
+    if downcast_int:
+        # Downcast to integer if possible
+        df = df.apply(lambda x: pd.to_numeric(x, downcast='integer', errors="ignore"))
+
+    if downcast_float: 
+        # Downcast float if possible
+        df = df.apply(lambda x: pd.to_numeric(x, downcast='float', errors="ignore"))
+    
+    return df
+
+
 def convert_to_list(x):
     """Convert object "x" to list"""
     
@@ -120,9 +140,60 @@ def merge_multiply_dfs(l,
     
     return df_merged
 
-
+def print2(msg=""):
+    
+    print(
+f"""
+-------------------- USER MESSAGE --------------------
+{msg}
+------------------------------------------------------
+"""
+        )
         
+def insert_missing_rows_groupwise(df, groups, df_insert=None):
+    """
+    Insert rows with missing groups.
+    E.g., if year 1 has observations 'a', and 'b', whereas year 2 has 'b' and 'c', then the merged data with have 'a', 'b', and 'c' for both year 1 and 2.
+    """    
+    # Pre-allocate list of mergeables
+    mergeables = []
+    
+    for g in groups:
+        # Get df of unique values
+        df_mergeable = df[g].drop_duplicates().reset_index(drop=True)
+        
+        # Add key
+        df_mergeable['key'] = "A"
+        
+        # Add to list of mergeable dfs
+        mergeables.append(df_mergeable)
+        
+    if df_insert is not None:        
+        # Add key to df to be inserted
+        df_insert['key'] = "A"
+            
+        # Add to list of mergeable dfs
+        mergeables.append(df_insert.drop_duplicates().reset_index(drop=True))
+    
+    # Get the number of unique rows needed
+    nunique_rows = np.prod([len(d) for d in mergeables])
 
+    # Construct data with all groups
+    df_unique = merge_multiply_dfs(l=mergeables,on=['key'],how='outer') 
+
+    # Remove key
+    df_unique.drop(columns="key", inplace=True)
+    
+    # Sanity check
+    if len(df_unique)!=nunique_rows:
+        raise Exception("Creating the unique data to be merged with didn't work.")
+
+    # Merge with unique data and thereby insert extra rows
+    df_merged = df.merge(right=df_unique,
+                         on=df_unique.columns.tolist(),
+                         how="outer")
+    
+    return df_merged
 
 
 
