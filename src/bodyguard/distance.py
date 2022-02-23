@@ -4,6 +4,11 @@
 # Standard
 import pandas as pd
 import numpy as np
+from sklearn.metrics import pairwise_distances
+
+from .sanity_check import check_type
+from .tools import isin
+from .exceptions import WrongInputException
 #------------------------------------------------------------------------------
 # Main
 #------------------------------------------------------------------------------
@@ -93,3 +98,48 @@ def normalize_by_norm(x, norm="L2", axis=0):
     else:
         x = x/np.linalg.norm(x=x,ord=norm_order, axis=None, keepdims=False)
     return x        
+
+
+def compute_distance(a,b,metric="Lknorm",**kwargs):
+    #TODO: Implement np.ndarray
+    
+    # Settings
+    TYPES_ALLOWED = (pd.Series,pd.DataFrame)
+    SCIKIT_DISTANCE_METRIC = ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan',
+                              'braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice',
+                              'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski',
+                              'rogerstanimoto', 'russellrao', 'seuclidean',
+                              'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule']
+    OTHER_DISTANCE_METRIC = ["Lknorm"]
+    
+    # Sanity checks
+    check_type(x=a,allowed_type=TYPES_ALLOWED,name="a")
+    check_type(x=b,allowed_type=TYPES_ALLOWED,name="b")
+    check_type(x=metric,allowed_type=str,name="metric")
+
+    if not isin(a=metric,b=OTHER_DISTANCE_METRIC+SCIKIT_DISTANCE_METRIC):
+        raise WrongInputException(input_name="metric",
+                                  provided_input=metric,
+                                  allowed_inputs=OTHER_DISTANCE_METRIC+SCIKIT_DISTANCE_METRIC)
+        
+    # Convert types
+    if isinstance(a, pd.Series):
+        a = a.to_frame().T
+    if isinstance(b, pd.Series):
+        b = b.to_frame().T        
+
+    # Compute distances
+    if metric in SCIKIT_DISTANCE_METRIC:
+        distances = pd.DataFrame(data=pairwise_distances(X=a,
+                                                         Y=b,
+                                                         metric=metric),
+                                 index=a.index,
+                                 columns=b.index)
+        
+    elif metric=="Lknorm":
+        distances = Lk_norm_distance(X=a,
+                                     Y=b,
+                                     **kwargs)
+                                     
+    return distances
+
