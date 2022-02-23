@@ -3,6 +3,6 @@
 """
 __init__
 """
-from bodyguard import (exceptions, read_and_write, strings, tools)
+from bodyguard import (convert, distance, exceptions, read_and_write, sanity_check, strings, tools)
 
-__all__ = [exceptions, read_and_write, strings, tools]
+# __all__ = [convert, distance, exceptions, read_and_write, strings, sanity_check, tools]
