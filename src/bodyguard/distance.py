@@ -101,6 +101,9 @@ def normalize_by_norm(x, norm="L2", axis=0):
 
 
 def compute_distance(a,b,metric="Lknorm",**kwargs):
+    """
+    Compute distance between two Dataframes or Series
+    """
     #TODO: Implement np.ndarray
     
     # Settings
@@ -143,3 +146,71 @@ def compute_distance(a,b,metric="Lknorm",**kwargs):
                                      
     return distances
 
+def compute_similarity(a,b,metric="Lknorm",**kwargs):
+    """
+    Compute similarity between two Dataframes or Series
+    """
+    #TODO: Implement np.ndarray
+    
+    # Settings
+    TYPES_ALLOWED = (pd.Series,pd.DataFrame)
+    SCIKIT_DISTANCE_METRIC = ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan',
+                              'braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice',
+                              'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski',
+                              'rogerstanimoto', 'russellrao', 'seuclidean',
+                              'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule']
+    CORRWITH_SIMILARITY_METRIC = ["pearson", "kendall", "spearman"]
+    OTHER_DISTANCE_METRIC = ["Lknorm"]
+    
+    # Sanity checks
+    check_type(x=a,allowed_type=TYPES_ALLOWED,name="a")
+    check_type(x=b,allowed_type=TYPES_ALLOWED,name="b")
+    check_type(x=metric,allowed_type=str,name="metric")
+
+    if not isin(a=metric,b=OTHER_DISTANCE_METRIC+SCIKIT_DISTANCE_METRIC+CORRWITH_SIMILARITY_METRIC):
+        raise WrongInputException(input_name="metric",
+                                  provided_input=metric,
+                                  allowed_inputs=OTHER_DISTANCE_METRIC+SCIKIT_DISTANCE_METRIC+CORRWITH_SIMILARITY_METRIC)
+        
+    # Convert types
+    if isinstance(a, pd.Series):
+        a = a.to_frame().T
+    if isinstance(b, pd.Series):
+        b = b.to_frame().T        
+
+    # Compute similarities
+    if metric in SCIKIT_DISTANCE_METRIC+OTHER_DISTANCE_METRIC:
+        # Compute distances
+        distances = compute_distance(a=a,
+                                     b=b,
+                                     metric=metric,
+                                     **kwargs)
+        
+        # Negate distances
+        if isin(a=metric,b=["cosine","correlation"]):
+            similarities = 1-distances
+        else:
+            similarities = -distances
+        
+    elif metric in CORRWITH_SIMILARITY_METRIC:
+        # Pre-allocate
+        similarities = []
+
+        for c in b.index:
+            
+            # Get temporary score
+            similarity_temp = a.corrwith(other=b.loc[c],
+                                    axis=1,
+                                    method=metric)
+            
+            # Assign name
+            similarity_temp .name = c
+            
+            # Append
+            similarities.append(similarity_temp )
+
+        # Concatenate all scores
+        similarities = pd.concat(objs=similarities, axis=1)
+        
+                                     
+    return similarities
