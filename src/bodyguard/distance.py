@@ -6,9 +6,8 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import pairwise_distances
 
-from .sanity_check import check_type
+from .sanity_check import check_type, check_str
 from .tools import isin
-from .exceptions import WrongInputException
 #------------------------------------------------------------------------------
 # Main
 #------------------------------------------------------------------------------
@@ -116,14 +115,11 @@ def compute_distance(a,b,metric="Lknorm",**kwargs):
     OTHER_DISTANCE_METRIC = ["Lknorm"]
     
     # Sanity checks
-    check_type(x=a,allowed_type=TYPES_ALLOWED,name="a")
-    check_type(x=b,allowed_type=TYPES_ALLOWED,name="b")
-    check_type(x=metric,allowed_type=str,name="metric")
-
-    if not isin(a=metric,b=OTHER_DISTANCE_METRIC+SCIKIT_DISTANCE_METRIC):
-        raise WrongInputException(input_name="metric",
-                                  provided_input=metric,
-                                  allowed_inputs=OTHER_DISTANCE_METRIC+SCIKIT_DISTANCE_METRIC)
+    check_type(x=a,allowed=TYPES_ALLOWED,name="a")
+    check_type(x=b,allowed=TYPES_ALLOWED,name="b")
+    check_str(x=metric,
+              allowed=OTHER_DISTANCE_METRIC+SCIKIT_DISTANCE_METRIC,
+              name="metric")
         
     # Convert types
     if isinstance(a, pd.Series):
@@ -138,7 +134,7 @@ def compute_distance(a,b,metric="Lknorm",**kwargs):
                                                          metric=metric),
                                  index=a.index,
                                  columns=b.index)
-        
+                        
     elif metric=="Lknorm":
         distances = Lk_norm_distance(X=a,
                                      Y=b,
@@ -163,15 +159,12 @@ def compute_similarity(a,b,metric="Lknorm",**kwargs):
     OTHER_DISTANCE_METRIC = ["Lknorm"]
     
     # Sanity checks
-    check_type(x=a,allowed_type=TYPES_ALLOWED,name="a")
-    check_type(x=b,allowed_type=TYPES_ALLOWED,name="b")
-    check_type(x=metric,allowed_type=str,name="metric")
+    check_type(x=a,allowed=TYPES_ALLOWED,name="a")
+    check_type(x=b,allowed=TYPES_ALLOWED,name="b")
+    check_str(x=metric,
+              allowed=OTHER_DISTANCE_METRIC+SCIKIT_DISTANCE_METRIC+CORRWITH_SIMILARITY_METRIC,
+              name="metric")
 
-    if not isin(a=metric,b=OTHER_DISTANCE_METRIC+SCIKIT_DISTANCE_METRIC+CORRWITH_SIMILARITY_METRIC):
-        raise WrongInputException(input_name="metric",
-                                  provided_input=metric,
-                                  allowed_inputs=OTHER_DISTANCE_METRIC+SCIKIT_DISTANCE_METRIC+CORRWITH_SIMILARITY_METRIC)
-        
     # Convert types
     if isinstance(a, pd.Series):
         a = a.to_frame().T
@@ -180,15 +173,27 @@ def compute_similarity(a,b,metric="Lknorm",**kwargs):
 
     # Compute similarities
     if metric in SCIKIT_DISTANCE_METRIC+OTHER_DISTANCE_METRIC:
+        
         # Compute distances
         distances = compute_distance(a=a,
                                      b=b,
                                      metric=metric,
                                      **kwargs)
         
-        # Negate distances
-        if isin(a=metric,b=["cosine","correlation"]):
-            similarities = 1-distances
+        if isin(a=metric,b=["cosine","correlation"]):            
+            # Cosine distance is defined as 1.0 minus the cosine similarity.
+            # Same with correlation (https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.correlation.html)
+            similarities = 1 - distances
+            
+            # Cosine/correlation similarity is defined on [-1,+1], which we enforce due to numerical stability
+            similarities.clip(lower=-1,
+                              upper=+1,
+                              inplace=True)
+            
+            if metric=="cosine":
+                # Convert cosine similarity to angular similarity (https://en.wikipedia.org/wiki/Cosine_similarity#Angular_distance_and_similarity)
+                similarities.iloc[:,:] = 1 - (np.arccos(similarities) / np.pi)
+
         else:
             similarities = -distances
         

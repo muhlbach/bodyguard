@@ -2,24 +2,65 @@
 # Libraries
 #------------------------------------------------------------------------------
 # Standard
+import sys, time, random
+from datetime import datetime
 import numpy as np
 import pandas as pd
 import numbers
 from functools import reduce
 
 # User
-from .exceptions import WrongInputException, WrongInputTypeException
+from .exceptions import WrongInputException
+from .sanity_check import check_type
 #------------------------------------------------------------------------------
 # Main
 #------------------------------------------------------------------------------
+def initialize_script(seed=1991):
+
+    # Start Timer
+    t0 = time.time()
+
+    # Set seed
+    random.seed(1991)
+
+    # Get current time and date
+    now = datetime.now()
+    
+    print2(f"This script was initialized {now.strftime('at %H:%M:%S on %B %d, %Y')}")
+
+    return t0
+
+
+def end_script(t0):
+
+    # Stop Timer
+    t1 = time.time()
+    
+    # Set seed
+    random.seed(1991)
+
+    # Get current time and date
+    now = datetime.now()
+    
+    print2(f"""This script was ended {now.strftime('at %H:%M:%S on %B %d, %Y')}:
+
+   It took:
+       {int(t1-t0)} seconds,
+       {int((t1-t0)/60)} minutes, and
+       {round((t1-t0)/3600,2)} hours
+    """)
+    
+def stop():
+    sys.exit("Script was stopped by user")    
+
+
 def downcast(df, downcast_int=True, downcast_float=True):
     """
     Downcast numerical dtypes of dataframe
     """
-    if not isinstance(df, pd.DataFrame):
-        raise WrongInputTypeException(input_name="df",
-                                      provided_input=df,
-                                      allowed_inputs=pd.DataFrame)
+    check_type(x=df,
+               allowed=pd.DataFrame,
+               name="df")
         
     if downcast_int:
         # Downcast to integer if possible
@@ -56,13 +97,15 @@ def isin(a, b, how="all", return_element_wise=True):
     Note: Argument 'how' has NO EFFECT when 'return_element_wise=True'
     
     """
-    ALLOWED_HOW = ["all", "any"]
-    
-    if how not in ALLOWED_HOW:
-        raise WrongInputException(input_name="how",
-                                  provided_input=how,
-                                  allowed_inputs=ALLOWED_HOW)
+    HOW_OPT = ["all", "any"]
 
+    # NB! We cannot use ".sanity_check.check_str" here, because it will lead to RecursionError: maximum recursion depth exceeded while calling a Python object
+    # This is because ".sanity_check.check_str" itself uses isin.
+    if not any(how==h for h in HOW_OPT):
+        raise WrongInputException(x=how,
+                                  allowed=HOW_OPT,
+                                  name="how")
+    
     # Convert "a" and "b" to lists
     a = convert_to_list(x=a)
     b = convert_to_list(x=b)
@@ -112,12 +155,8 @@ def merge_multiply_dfs(l,
     """
     Merge multiple pd.DataFrame
     """
-    # Check if l is a list
-    if not isinstance(l, list):
-        raise WrongInputException(input_name="l",
-                                  provided_input=l,
-                                  allowed_inputs=["list"])
-        
+    check_type(x=l, allowed=list,name="l")
+    
     # Check if all elements are pd.dataframes
     if not all(isinstance(df,pd.DataFrame) for df in l):
         raise Exception("All elements in 'l' must be instances of pd.DataFrame")

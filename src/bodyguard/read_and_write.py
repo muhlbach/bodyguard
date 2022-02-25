@@ -6,9 +6,9 @@ import os
 import numpy as np
 import pandas as pd
 import pickle
+from .sanity_check import check_str, check_type
 from .strings import contains_number
 from .tools import isin, downcast
-from .exceptions import WrongInputException
 #------------------------------------------------------------------------------
 # Main
 #------------------------------------------------------------------------------
@@ -16,20 +16,20 @@ def read_file(path, clean_up=True, downcast_float=True, **kwargs):
     """
     Read data by pandas
     """
+    check_type(x=path,allowed=str,name="path")
+
     # Split path to identify extension of gile
     path_split = path.rsplit(".", maxsplit=1)
     
     # Obtain file extension to guide file reading
     f_ext = path_split[-1]
     
+    check_str(x=f_ext,allowed=["csv","xls", "xlsx"])
+    
     if f_ext=="csv":
         df = pd.read_csv(filepath_or_buffer=path, **kwargs)
     elif isin(a=f_ext,b=["xls", "xlsx"]):
         df = pd.read_excel(io=path, **kwargs)
-    else:
-        raise WrongInputException(input_name="path",
-                                  provided_input=path,
-                                  allowed_inputs=["csv", "xls", "xlsx"])
         
     if clean_up:
         
@@ -77,12 +77,9 @@ def pd_to_parquet(df,path,n_files=10,engine='auto',compression='BROTLI',index=No
     Save (multiple) pandas DataFrames as parquet files
     """
     # Sanity checks
-    if not isinstance(df, pd.DataFrame):
-        raise Exception(f"Argument 'df' is not instance of pd.DataFrame. It is type: {type(df)}")
-        
-    if not isinstance(n_files,int):
-        raise Exception(f"Argument 'n_files' is not instance of int. It is type: {type(n_files)}")
-
+    check_type(x=df, allowed=pd.DataFrame)
+    check_type(x=n_files, allowed=int)
+    
     if path.count(".")!=1:
         raise Exception(f"Argument 'path' is allowed to contain 1 dot (.) but it contains {path.count('.')}")
 
@@ -111,6 +108,8 @@ def pd_from_parquet(path,engine='auto',columns=None,storage_options=None,use_nul
     """
     Read (multiple) parquet files as pandas DataFrames
     """        
+    check_type(x=path,allowed=str,name="path")
+    
     # Split path to keep file extension
     path_split = path.rsplit(".", maxsplit=1)
 

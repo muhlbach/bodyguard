@@ -7,34 +7,34 @@
 #------------------------------------------------------------------------------
 class WrongInputException(Exception):
     """
-    Exception raised when input is not a pd.DataFrame
+    Exception to be raised when input is not as expected
     """
-    def __init__(self, input_name, provided_input, allowed_inputs, message="\nUser-provided argument '{0}' is currently '{1}'.\nArgument must be one of: '{2}'"):
-        self.input_name = input_name
-        self.provided_input = provided_input
-        self.allowed_inputs = allowed_inputs
+    def __init__(self, x, allowed, name, message="\nUser-provided argument '{0}' is currently '{1}'.\nArgument must be one of: '{2}'"):
+        self.x = x
+        self.allowed = allowed
+        self.name = name
         self.message = message
         super().__init__(self.message)    
 
     def __str__(self):
         
-        return self.message.format(self.input_name,self.provided_input, self.allowed_inputs)
+        return self.message.format(self.name,self.x,self.allowed)
 
 
 class WrongInputTypeException(Exception):
     """
-    Exception raised when input is not a pd.DataFrame
+    Exception to be raised when input is of the expected instance
     """
-    def __init__(self, input_name, provided_input, allowed_inputs, message="\nUser-provided argument '{0}' is currently an instance of type '{1}'.\nArgument must be an instance of one of: '{2}'"):
-        self.input_name = input_name
-        self.provided_input = provided_input
-        self.allowed_inputs = allowed_inputs
+    def __init__(self, x, allowed, name, message="\nUser-provided argument '{0}' is currently an instance of '{1}'.\nArgument must be an instance of either one of: '{2}'"):
+        self.x = x
+        self.allowed = allowed
+        self.name = name
         self.message = message
         super().__init__(self.message)    
 
     def __str__(self):
         
-        return self.message.format(self.input_name,type(self.provided_input), self.allowed_inputs)
+        return self.message.format(self.name,type(self.x),self.allowed)
 
 
 def print_warning(msg=""):
