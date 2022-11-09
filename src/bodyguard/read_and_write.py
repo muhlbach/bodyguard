@@ -6,9 +6,10 @@ import os
 import numpy as np
 import pandas as pd
 import pickle
+import json
 from .sanity_check import check_str, check_type
-from .strings import contains_number
-from .tools import isin, downcast
+from .strings import contains_number, special_characters
+from .tools import isin, downcast, print2
 #------------------------------------------------------------------------------
 # Main
 #------------------------------------------------------------------------------
@@ -72,10 +73,14 @@ def read_file(path, clean_up=True, downcast_float=True, **kwargs):
     return df
 
 
-def pd_to_parquet(df,path,n_files=10,engine='auto',compression='BROTLI',index=None,partition_cols=None):
+def pd_to_parquet(df,path,n_files=10,engine='auto',compression='BROTLI',index=None,partition_cols=None,special_id="#"):
     """
     Save (multiple) pandas DataFrames as parquet files
     """
+    check_str(x=special_id,
+              allowed=special_characters(),
+              name=special_id)
+
     # Sanity checks
     check_type(x=df, allowed=pd.DataFrame)
     check_type(x=n_files, allowed=int)
@@ -94,7 +99,7 @@ def pd_to_parquet(df,path,n_files=10,engine='auto',compression='BROTLI',index=No
     for i,d in enumerate(dfs):
 
         # Filename
-        path_i = path_split[0]+f"_{i}."+path_split[1]
+        path_i = path_split[0]+f"_{special_id}{i}."+path_split[1]
 
         # Save multiple
         d.to_parquet(path=path_i,
@@ -104,17 +109,21 @@ def pd_to_parquet(df,path,n_files=10,engine='auto',compression='BROTLI',index=No
                         partition_cols=partition_cols)
 
 
-def pd_from_parquet(path,engine='auto',columns=None,storage_options=None,use_nullable_dtypes=False, verbose=False):
+def pd_from_parquet(path,engine='auto',columns=None,storage_options=None,use_nullable_dtypes=False, verbose=False,special_id="#"):
     """
     Read (multiple) parquet files as pandas DataFrames
     """        
+    check_str(x=special_id,
+              allowed=special_characters(),
+              name=special_id)
+
     check_type(x=path,allowed=str,name="path")
     
     # Split path to keep file extension
     path_split = path.rsplit(".", maxsplit=1)
 
     # File extension
-    file_ext = path_split[-1:][0]
+    file_ext = path_split[-1]
     
     # Get directory part of path and split
     dir_split = path_split[0].rsplit("/", maxsplit=1)
@@ -128,18 +137,15 @@ def pd_from_parquet(path,engine='auto',columns=None,storage_options=None,use_nul
     # List all files in directory of parent file
     files_all = os.listdir(dir_path)
     
-    if verbose>1:
-        print(f"Files found in path: \n{files_all}")
+    if verbose>1:        
+        print2("Files found in path: \n{0}".format('\n'.join(sorted(files_all))))
 
     # List only relevant files; They must contain both file name and file extension as well as at least one number
-    files = [f for f in files_all if all(c in f for c in [file_name,file_ext]) and contains_number(s=f)]
-    
-    # Sort
-    files.sort()
-    
+    files = sorted([f for f in files_all if (f.rsplit(special_id)[0].rstrip("_")==file_name) and f.rsplit(".")[-1]==file_ext])
+                    
     if verbose:
-        print(f"Relevant files found in path: \n{files}")
-
+        print2("Files found in path: \n{0}".format('\n'.join(sorted(files))))
+    
     # Pre-allocate
     dfs = []
     
@@ -179,5 +185,24 @@ def save_object_by_pickle(filename,obj):
 def load_object_by_pickle(filename):
     with open(filename, 'rb') as f:
         return pickle.load(file=f)
+    
+    
+# Save and load objects using JSON
+def save_object_by_json(filename,obj):
+    with open(filename, 'w', encoding="utf8") as f:
+        json.dump(obj=obj, fp=f, sort_keys=True, indent=4)
+        
+def load_object_by_json(filename):
+    with open(filename, 'rb') as f:
+        return json.load(fp=f)
+        
+def save_latex(filename,obj):
+    """
+    Save as latex table
+    """
+    if not filename.endswith(".tex"):
+        filename+".tex"
 
+    with open(filename, 'w') as f:
+        f.write(obj)
         

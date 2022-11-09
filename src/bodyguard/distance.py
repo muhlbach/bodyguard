@@ -11,6 +11,52 @@ from .tools import isin
 #------------------------------------------------------------------------------
 # Main
 #------------------------------------------------------------------------------
+def compute_matrix_norm(x,which_norm="fro"):
+    """
+    Compute various matrix norms
+    """
+    ALLOWED_NORMS = ["fro", "nuc",
+                     "spectral",
+                     "sum_squares",
+                     "inf",
+                     "mse","rmse",
+                     "all"]
+    
+    check_str(x=which_norm,allowed=ALLOWED_NORMS,name="which_norm")
+        
+    if which_norm in ["fro", "nuc"]:
+        norm = np.linalg.norm(x=x, ord=which_norm)
+    elif which_norm=="spectral":
+        norm = np.linalg.norm(x=x, ord=2)
+    elif which_norm=="sum_squares":
+        norm = (x**2).sum()
+    elif which_norm=="inf":
+        norm = np.linalg.norm(x=x, ord=np.inf)
+    elif which_norm=="rmse":
+        norm = np.sqrt((x**2).mean())
+    elif which_norm=="mse":
+        norm = (x**2).mean()
+        
+    elif which_norm=="all":        
+        norm = {
+                "fro":np.linalg.norm(x=x, ord="fro"),
+                "nuc":np.linalg.norm(x=x, ord="nuc"),
+                "spectral":np.linalg.norm(x=x, ord=2),
+                "sum_squares":(x**2).sum(),
+                "inf":np.linalg.norm(x=x, ord=np.inf),
+                "mse":(x**2).mean(),
+                "rmse":np.sqrt((x**2).mean()),
+                }
+        
+    return norm
+
+def enforce_L2_normalization(x, axis=1):
+    """Ensure that array has L2 norm normalized to 1"""
+    if not all((x**2).sum(axis=axis).round(3)==1):
+        x = normalize_by_norm(x=x,norm="L2",axis=axis)
+    return x
+
+
 def Lk_norm_distance(X,Y,k=1/10,axis=1):
     """
     Compute the L_k norm distance between two dataframes
@@ -76,6 +122,9 @@ def normalize_by_norm(x, norm="L2", axis=0):
 
     For instance, L2 norm means that sum(x^2)=1
     """
+    ALLOWED_TYPES = (list, pd.DataFrame,pd.Series,np.ndarray)
+    check_type(x=x, allowed=ALLOWED_TYPES)
+
     # Break link
     x = x.copy()
 
@@ -92,14 +141,25 @@ def normalize_by_norm(x, norm="L2", axis=0):
     # Normalize using the order
     if isinstance(x, list):
         x = [normalize_by_norm(x=elem,norm=norm) for elem in x]
-    if isinstance(x, pd.DataFrame):
-        x = x.div(np.linalg.norm(x=x, axis=axis, keepdims=False), axis=reverse_axis)
-    else:
+    elif isinstance(x, pd.DataFrame):
+        if x.shape[0]==1:
+            # This is a row-vector. Axis-argument is meaningless
+            x = x.div(np.linalg.norm(x=x, axis=1, keepdims=False), axis=0)
+        elif x.shape[1]==1:
+            # This is a column-vector. Axis-argument is meaningless
+            x = x.div(np.linalg.norm(x=x, axis=0, keepdims=False), axis=1)
+        else:
+            # This is a proper matrix
+            x = x.div(np.linalg.norm(x=x, axis=axis, keepdims=False), axis=reverse_axis)
+    elif isinstance(x, pd.Series):
         x = x/np.linalg.norm(x=x,ord=norm_order, axis=None, keepdims=False)
+    elif isinstance(x,np.ndarray):
+        x /= np.linalg.norm(x=x,ord=norm_order, axis=axis, keepdims=True)
+        
     return x        
 
 
-def compute_distance(a,b,metric="Lknorm",**kwargs):
+def compute_distance(a,b,metric="Lknorm", **kwargs):
     """
     Compute distance between two Dataframes or Series
     """
@@ -142,7 +202,7 @@ def compute_distance(a,b,metric="Lknorm",**kwargs):
                                      
     return distances
 
-def compute_similarity(a,b,metric="Lknorm",**kwargs):
+def compute_similarity(a,b,metric="Lknorm",convert_to_angular_similarity=True,**kwargs):
     """
     Compute similarity between two Dataframes or Series
     """
@@ -191,8 +251,9 @@ def compute_similarity(a,b,metric="Lknorm",**kwargs):
                               inplace=True)
             
             if metric=="cosine":
-                # Convert cosine similarity to angular similarity (https://en.wikipedia.org/wiki/Cosine_similarity#Angular_distance_and_similarity)
-                similarities.iloc[:,:] = 1 - (np.arccos(similarities) / np.pi)
+                if convert_to_angular_similarity:
+                    # Convert cosine similarity to angular similarity (https://en.wikipedia.org/wiki/Cosine_similarity#Angular_distance_and_similarity)
+                    similarities.iloc[:,:] = 1 - (np.arccos(similarities) / np.pi)
 
         else:
             similarities = -distances
@@ -217,5 +278,4 @@ def compute_similarity(a,b,metric="Lknorm",**kwargs):
         # Concatenate all scores
         similarities = pd.concat(objs=similarities, axis=1)
         
-                                     
     return similarities

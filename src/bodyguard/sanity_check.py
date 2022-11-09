@@ -1,6 +1,7 @@
 #------------------------------------------------------------------------------
 # Libraries
 #------------------------------------------------------------------------------
+import pandas as pd
 from .exceptions import WrongInputTypeException,WrongInputException
 #------------------------------------------------------------------------------
 # Main
@@ -26,8 +27,6 @@ def check_type(x,allowed,name="x"):
                                       allowed=allowed,
                                       name=name)
             
-        
-        
 def check_str(x,allowed,name="x"):
     
     # Check input "x"
@@ -50,4 +49,20 @@ def check_str(x,allowed,name="x"):
         raise WrongInputException(x=x,
                                   allowed=allowed,
                                   name=name)
-                        
+                                
+def check_missingness(df, name="df"):
+    """Check for missingness in dataframe"""
+    
+    # Check input type
+    check_type(x=df,allowed=pd.DataFrame,name="df")
+    
+    # Check overall missingness        
+    if df.isna().any().sum()>0:
+        raise Exception(f"Missingness detected in {name}: \n{df.isna().sum()}")
+    
+    
+
+
+
+
+        
