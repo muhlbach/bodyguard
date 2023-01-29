@@ -189,8 +189,8 @@ def load_object_by_pickle(filename):
     
 # Save and load objects using JSON
 def save_object_by_json(filename,obj):
-    with open(filename, 'w', encoding="utf8") as f:
-        json.dump(obj=obj, fp=f, sort_keys=True, indent=4)
+    with open(filename, 'w', encoding="utf-8") as f:
+        json.dump(obj=obj, fp=f, sort_keys=True, ensure_ascii=False, indent=4)
         
 def load_object_by_json(filename):
     with open(filename, 'rb') as f:
