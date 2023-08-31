@@ -9,6 +9,7 @@ import pandas as pd
 import numbers
 from functools import reduce
 import itertools
+import inspect
 from pandas.api.types import is_integer_dtype
 from pandas.api.types import is_float_dtype
   
@@ -125,8 +126,12 @@ def to_numeric(df, errors="ignore"):
 #------------------------------------------------------------------------------
 # Misc
 #------------------------------------------------------------------------------
+def inspect_callable(callable):
+    signature = inspect.signature(callable)
+    parameters = signature.parameters
 
-
+    for name, parameter in parameters.items():
+        print(f"{name}: {parameter}")
 
 
 def inverse_matrix(x, library="numpy", generalized=False):
